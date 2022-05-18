@@ -3,47 +3,39 @@
   hosts: all
   become: yes
   tasks:
-    - name: installing mysql server and installing python3 mysql dependencies
+    - name: Installing mysql 
       apt:
-        name: "{{ item }}"
+        update_cache: yes
+        name: mysql-server
         state: present
-      with_items:
-        - mysql-server
-        - python3-pymysql
-
-    - name: Make sure a mysql service unit is running 
-      ansible.builtin.systemd:
-        state: started
-        name: mysql
-        enabled: yes
-
-    - name: Enable remote login to mysql user
-      lineinfile:
-         path: /etc/mysql/mysql.conf.d/mysqld.cnf
-         regexp: '^bind-address'
-         line: 'bind-address = 0.0.0.0'
-         backup: yes
-      notify:
-         - Restart mysql   
-
-    - name: creating password for root user in mysql 
+    - name: Install python3-PyMySQL library
+      apt:
+        name: python3-pymysql
+        state: present
+    - name: update mysql root password for root account
       mysql_user:
-        host: localhost
-        login_unix_socket: /var/run/mysqld/mysqld.sock
         name: root
-        password: password
-        priv: '*.*:ALL,GRANT'
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        login_user: root
+        login_password: Testuser@123
+        host: 'localhost'
+        password: Testuser@123
+        priv: "*.*:ALL,GRANT"
         check_implicit_admin: true
         state: present
-
-    - name: creating user
+    - name: Creating user 
       mysql_user:
         login_user: root
-        login_password: password
+        login_password: Testuser@123
         name: spurtcommerce
         password: spurtcommerce
-        host: localhost
+        host: '%'
         priv: "*.*:ALL,GRANT"
         state: present
-
+    - name: Creating user 
+      mysql_db:
+        login_user: root
+        login_password: Testuser@123
+        name: spurtcommerce
+        state: present
     
