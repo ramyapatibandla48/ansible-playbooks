@@ -1,0 +1,10 @@
+---
+- name: Installing angular server
+  hosts: all
+  become: yes
+  tasks:
+     - name: angular installation
+       npm:
+        name: "@angular/cli"
+        global: yes
+        state: present

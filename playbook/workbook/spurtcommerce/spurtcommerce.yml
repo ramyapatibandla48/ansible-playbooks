@@ -1,0 +1,85 @@
+---
+- name: Spurtcommerce application
+  become: yes
+  hosts: all
+  tasks:
+    - name: install apt and repo
+      apt:
+        update_cache: yes 
+        state: present
+
+  
+    - name: installing nodejs setup
+      get_url:
+        url: https://deb.nodesource.com/setup_14.x
+        dest: /tmp/nodejssetup.sh
+
+    - name: installing nodejs and build essential
+      apt:
+        name: "{{ item }}"
+        update_cache: yes
+        state: present
+      with_items:
+        -  nodejs
+        -  build-essential
+
+    - name: installing dependency software for  Spurtcommerce
+      community.general.npm:
+        name: "{{ item }}"
+        global: yes
+        state: present
+      with_items:
+        - forever
+        - apidoc
+    
+    - name: apache2 installation
+      apt:
+        name: apache2
+        force_apt_get: yes
+        state: present
+
+    - name: enabling apache modules
+      community.general.apache2_module:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - proxy
+        - proxy_http
+        - headers
+
+    - name: restart apache2 module 
+      ansible.builtin.service:
+        name: apache2
+        state: restarted
+
+    - name: Installing Imagemagick
+      apt:
+        name: imagemagick
+        state: present 
+
+    - name: installing mysql server and installing python3 mysql dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - mysql-server
+        - python3-pymysql
+
+    - name: creating password for root user in mysql 
+      mysql_user:
+        host: localhost
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        name: root
+        password: password
+        priv: '*.*:ALL,GRANT'
+        check_implicit_admin: true
+      
+    - name: creating user
+      mysql_user:
+        login_user: root
+        login_password: password
+        name: spurtcommerce
+        password: spurtcommerce
+        host: localhost
+        priv: "*.*:ALL,GRANT"
+        state: present

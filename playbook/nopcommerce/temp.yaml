@@ -1,0 +1,151 @@
+---
+- name: Nop commerce application
+  become: yes
+  hosts: webserver
+  vars:
+    - nopCommerce450_service_location : /etc/systemd/system/nopCommerce450.service 
+    - default_request: /etc/nginx/sites-available/default
+    - db_user: ramya
+    - db_pass: mysql
+    
+  tasks:
+    - name: install apt and repo
+      apt:
+        update_cache: yes     
+    - name: Download the Microsoft repository GPG keys
+      ansible.builtin.get_url:
+        url: "https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb"
+        dest: /tmp/packages-microsoft-prod.deb    
+    - name: Run the downloaded debian packages
+      apt:
+        deb: /tmp/packages-microsoft-prod.deb
+        state: present     
+    - name: Installing dotnet version
+      apt:
+        name: "{{ item }}"
+        update_cache: yes
+        state: present
+      with_items:
+        - apt-transport-https
+        - aspnetcore-runtime-6.0 
+   
+    - name: Installing mysql
+      package:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+          - mysql-server
+          - python3-mysqldb
+   
+    - name: starting and enabling mysql service
+      service:
+        name: mysql
+        state: started
+
+    - name: Creating mysql user
+      mysql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_pass }}"
+        priv: '*.*:ALL'
+        host: '%'
+        state: present
+
+    - name: Enable remote login to mysql user
+      lineinfile:
+         path: /etc/mysql/mysql.conf.d/mysqld.cnf
+         regexp: '^bind-address'
+         line: 'bind-address = 0.0.0.0'
+         backup: yes
+      notify:
+         - Restart mysql   
+   
+    - name: installing nginx server
+      apt:
+        name: nginx
+        force_apt_get: yes
+        state: present
+      
+    - name: starting daemon_reload,start and checking the status of nginx service
+      ansible.builtin.systemd:
+        daemon_reload: yes
+        state: started
+        name: nginx.service
+      notify: 
+        -  reload the daemon, enable and start the nginx service
+    
+    - name: To configure nginx as a reverse proxy to forward requests to your ASP.NET Core app
+      ansible.builtin.template:
+        src: 'default.j2'
+        dest: "{{ default_request }}"
+
+    - name: Creates directory
+      ansible.builtin.file: 
+        path: /var/www/nopCommerce450
+        state: directory
+
+    - name: Download the nop commerce 
+      ansible.builtin.get_url:
+        url: "https://github.com/nopSolutions/nopCommerce/releases/download/release-4.50.2/nopCommerce_4.50.2_NoSource_linux_x64.zip"
+        dest: "/bin/nopCommerce_4.50.2_NoSource_linux_x64.zip"
+
+    - name: Install unzip
+      apt:
+        name: unzip
+        state: present
+         
+    - name: unarchieve a file
+      ansible.builtin.unarchive:
+        src: "/bin/nopCommerce_4.50.2_NoSource_linux_x64.zip"
+        dest: "/var/www/nopCommerce450"
+        remote_src: yes
+        
+    - name: creating bin and log directories
+      ansible.builtin.file: 
+        path: "{{ item }}"
+        state: directory
+      with_items:
+          - /var/www/nopCommerce450/bin
+          - /var/www/nopCommerce450/logs 
+
+    - name: changing chgrp and chown permissions
+      ansible.builtin.file: 
+        path: /var/www/nopCommerce450
+        state: directory
+        recurse: yes
+        owner: www-data
+        group: www-data
+
+    - name: nopCommerce450 service file
+      ansible.builtin.template:
+        src: 'nopCommerce450.service.j2'
+        dest: "{{ nopCommerce450_service_location }}"
+      notify: 
+        -  reload the daemon, enable and start the nopCommerce450 service
+
+    - name: ensure nopcommerce450 service is running
+      ansible.builtin.systemd:
+        name: 'nopCommerce450.service'
+        state: 'restarted'
+
+  handlers:
+    - name: reload the daemon, enable and start the nopCommerce450 service
+      ansible.builtin.systemd:
+        name: 'nopCommerce450.service'
+        daemon_reload: yes
+        enabled: yes
+        state: restarted 
+
+    - name: Restart mysql
+      service:
+        name: mysql
+        state: restarted
+
+    - name: reload the daemon, enable and start the nginx service
+      ansible.builtin.systemd:
+        name: 'nginx.service'
+        daemon_reload: yes
+        enabled: yes
+        state: restarted 
+
+    

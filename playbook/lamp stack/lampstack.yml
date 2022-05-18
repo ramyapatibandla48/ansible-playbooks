@@ -1,0 +1,20 @@
+---
+- name: lampstack installation
+  become: yes
+  hosts: webserver
+  tasks:
+      - name: updating apt
+        apt: 
+          update_cache: yes
+
+      - name: installing apache2 
+        apt:
+          name: apache2
+          state: present
+
+      - name: managing firewall
+        community.general.ufw:
+          state: enabled
+          rule: allow
+          port: '80'
+          proto: tcp

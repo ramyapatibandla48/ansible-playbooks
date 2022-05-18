@@ -1,0 +1,37 @@
+---
+- name: Tomcat Installation 
+  become: yes
+  hosts: webserver
+  vars:
+    - user_name: tomcat
+    - default_shell: /bin/false
+    - home_dir: /opt/tomcat
+    - tomcat_version: 9.0.60
+  tasks:
+    - name: install apt and repo
+      apt:
+        update_cache: yes  
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: install openjdk11
+      package:
+        name: "{{ java_package }}"
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Adding user to tomcat
+      ansible.builtin.user:
+        create_home: yes
+        home:  "{{ home_dir }}"
+        group: "{{ user_name }}"
+        shell: "{{ default_shell }}"
+        name: "{{ user_name }}"
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Tomcat installation
+      ansible.builtin.get_url:
+       url: "https://dlcdn.apache.org/tomcat/tomcat-9/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+       dest: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+      when: ansible_facts['os_family'] == "Debian"
+       

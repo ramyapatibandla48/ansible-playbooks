@@ -1,0 +1,10 @@
+all:
+ children:
+   ubuntu:
+     hosts:
+       localhost:
+        172.31.88.227:
+    redhat:
+      hosts:
+        172.31.89.186:
+     

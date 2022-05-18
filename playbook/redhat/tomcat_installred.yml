@@ -1,0 +1,9 @@
+---
+- name: Install Java
+  become: yes
+  hosts: webserver
+  tasks:
+    - name: install java on redhat
+      package:
+        name: "{{ java_package }}"
+        state: present

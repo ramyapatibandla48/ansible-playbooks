@@ -1,0 +1,52 @@
+---
+- name: frontend and backend application
+  become: yes
+  hosts: all
+  vars:
+    - default_request: /etc/apache2/sites-available/
+    
+  tasks: 
+    - name: downloading spurtcommerce application from git
+      git:
+        repo: 'https://github.com/Manojkumarpolaka/spurtcommerce.git'
+        dest: /home/devops/
+        clone: yes
+
+    - name: installing unzip
+      apt:
+        name: unzip
+        state: present
+
+    - name: unzipping spurtcommerce
+      unarchive: 
+        src: /home/devops/spurtcommerce/Spurtcommerce_3.0.2_community_LTS.zip
+        dest: /home/devops/spurtcommerce/
+        remote_src: yes
+
+    - name: changing user and group
+      file: 
+        path: /home/devops/spurtcommerce/
+        owner: $USER
+        group: $USER
+        recurse: yes
+
+    - name: setting proxy request on apache2
+      command: chdir=/etc/apache2/sites-available/ ls
+
+    - name: jinja template
+      ansible.builtin.template:
+        src: '000-default.conf.j2'
+        dest: "{{ default_request }}"
+
+    - name: Building the application for backend API
+      command:
+        chdir: /home/devops/spurtcommerce/Spurtcommerce_3.0.2_community_LTS/api 
+        cmd: npm install typeorm-seeding@1.0.0-beta.6 -- save
+
+    - name: Building the application for backend API
+      command:
+        chdir: /home/devops/spurtcommerce/Spurtcommerce_3.0.2_community_LTS/api 
+        cmd: npm run build
+  
+
+      

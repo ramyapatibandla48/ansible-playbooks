@@ -1,0 +1,7 @@
+---
+- name: installing postgress
+  hosts: db
+  become: yes
+  roles: 
+    - role: buluma.postgres
+        postgres_port: 6543
