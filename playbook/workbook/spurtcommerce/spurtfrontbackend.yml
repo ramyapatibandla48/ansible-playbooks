@@ -38,15 +38,46 @@
         src: '000-default.conf.j2'
         dest: "{{ default_request }}"
 
+    - name: Install packages based on package.json for backend API.
+      npm:
+        path: /home/devops/spurtcommerce/Spurtcommerce_3.0.2_community_LTS/api
+        state: latest
     - name: Building the application for backend API
       command:
         chdir: /home/devops/spurtcommerce/Spurtcommerce_3.0.2_community_LTS/api 
         cmd: npm install typeorm-seeding@1.0.0-beta.6 -- save
-
     - name: Building the application for backend API
       command:
         chdir: /home/devops/spurtcommerce/Spurtcommerce_3.0.2_community_LTS/api 
         cmd: npm run build
-  
+    - name: changing URLs for store and image in environment.ts
+      template:
+        src: 'environment.ts.j2'
+        dest: 'spurtcommerce/Spurtcommerce_3.0.2_community_LTS/store/src/environments/environment.ts'
+    - name: changing URLs for store and image in environment.ts.prod
+      template:
+        src: 'environment.prod.ts.j2'
+        dest: 'spurtcommerce/Spurtcommerce_3.0.2_community_LTS/store/src/environments/environment.prod.ts'
+    - name: Install packages based on package.json for Frontend store.
+      npm:
+        path: /home/devops/spurtcommerce/Spurtcommerce_3.0.2_community_LTS/store
+        state: latest
+    - name: Building the application Frontend store
+      command:
+        chdir: /home/devops/spurtcommerce/Spurtcommerce_3.0.2_community_LTS/store
+        cmd: npm run build
+    - name: Copying files from dist to html folder
+      copy:
+        src: '/home/devops/spurtcommerce/Spurtcommerce_3.0.2_community_LTS/store/dist/browser/'
+        dest: '/var/www/html/'
+        remote_src: yes
+    - name: import the database
+      mysql_db:
+        name: spurtcommerce
+        state: import
+        target: /home/devops/spurtcommerce/Spurtcommerce_3.0.2_community_LTS/spurtcommerce.sql
+        login_host: 'localhost'
+        login_user: root
+        login_password: 'Testuser@123'
 
       
